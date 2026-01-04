@@ -1,0 +1,463 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Sentiment Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: #0f0f0f;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid #2a2a2a;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .twitter-logo {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            color: #ffffff;
+            font-size: 28px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #8b8b8b;
+            font-size: 14px;
+        }
+
+        .model-selector {
+            margin-bottom: 25px;
+        }
+
+        .model-selector label {
+            color: #ffffff;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .model-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .model-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #2a2a2a;
+            background: #1a1a1a;
+            color: #8b8b8b;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .model-btn:hover {
+            border-color: #1DA1F2;
+            color: #ffffff;
+        }
+
+        .model-btn.active {
+            background: #1DA1F2;
+            border-color: #1DA1F2;
+            color: #ffffff;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            color: #ffffff;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #2a2a2a;
+            border-radius: 12px;
+            font-size: 15px;
+            resize: vertical;
+            min-height: 120px;
+            background: #1a1a1a;
+            color: #ffffff;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #1DA1F2;
+        }
+
+        textarea::placeholder {
+            color: #5b5b5b;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #1DA1F2;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #1a8cd8;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(29, 161, 242, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #2a2a2a;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            background: #1a1a1a;
+            border-radius: 12px;
+            border: 2px solid #2a2a2a;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-title {
+            color: #8b8b8b;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .prediction {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .prediction.positive { color: #10b981; }
+        .prediction.negative { color: #ef4444; }
+        .prediction.objective { color: #3b82f6; }
+        .prediction.neutral { color: #f59e0b; }
+
+        .confidence {
+            color: #8b8b8b;
+            font-size: 15px;
+            margin-bottom: 20px;
+        }
+
+        .probabilities {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #2a2a2a;
+        }
+
+        .prob-title {
+            color: #8b8b8b;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .prob-item {
+            margin-bottom: 12px;
+        }
+
+        .prob-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+
+        .prob-label-name {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .prob-label-value {
+            color: #8b8b8b;
+            font-weight: 600;
+        }
+
+        .prob-bar-bg {
+            background: #0a0a0a;
+            border-radius: 6px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .prob-bar {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.6s ease;
+        }
+
+        .prob-bar.positive { background: #10b981; }
+        .prob-bar.negative { background: #ef4444; }
+        .prob-bar.objective { background: #3b82f6; }
+        .prob-bar.neutral { background: #f59e0b; }
+
+        .error {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 2px solid #ef4444;
+            border-radius: 10px;
+            color: #ef4444;
+            display: none;
+            font-size: 14px;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #2a2a2a;
+            border-top: 3px solid #1DA1F2;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <svg class="twitter-logo" viewBox="0 0 24 24" aria-hidden="true" fill="#ffffff">
+                <g><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></g>
+            </svg>
+            <h1>Twitter Sentiment Analyzer</h1>
+            <p class="subtitle">Powered by AraBERT - Arabic NLP Model</p>
+        </div>
+
+        <div class="model-selector">
+            <label>Choose Model:</label>
+            <div class="model-buttons">
+                <button class="model-btn active" data-model="model1">
+                    Model 1 (4 Classes)
+                </button>
+                <button class="model-btn" data-model="model2">
+                    Model 2 (3 Classes)
+                </button>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="text-input">Enter Arabic Text:</label>
+            <textarea 
+                id="text-input" 
+                placeholder="Type or paste your Arabic tweet here..."
+                rows="5"
+            ></textarea>
+        </div>
+
+        <button id="analyze-btn">Analyze Sentiment</button>
+
+        <div class="loading">
+            <div class="spinner"></div>
+        </div>
+
+        <div class="error" id="error-msg"></div>
+
+        <div class="result" id="result">
+            <p class="result-title">Analysis Result</p>
+            <div class="prediction" id="prediction"></div>
+            <div class="confidence" id="confidence"></div>
+            
+            <div class="probabilities">
+                <p class="prob-title">All Probabilities (from Model Softmax)</p>
+                <div id="probabilities-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedModel = "model1";
+
+        document.querySelectorAll(".model-btn").forEach(btn => {
+            btn.addEventListener("click", function() {
+                document.querySelectorAll(".model-btn").forEach(b => b.classList.remove("active"));
+                this.classList.add("active");
+                selectedModel = this.dataset.model;
+                
+                document.getElementById("result").classList.remove("show");
+                document.getElementById("error-msg").classList.remove("show");
+            });
+        });
+
+        document.getElementById("analyze-btn").addEventListener("click", async function() {
+            const text = document.getElementById("text-input").value.trim();
+            const resultDiv = document.getElementById("result");
+            const errorDiv = document.getElementById("error-msg");
+            const loadingDiv = document.querySelector(".loading");
+            const analyzeBtn = document.getElementById("analyze-btn");
+
+            resultDiv.classList.remove("show");
+            errorDiv.classList.remove("show");
+
+            if (!text) {
+                errorDiv.textContent = "Please enter some text to analyze";
+                errorDiv.classList.add("show");
+                return;
+            }
+
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = "Analyzing...";
+            loadingDiv.classList.add("show");
+
+            try {
+                const response = await fetch("/analyze", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        model: selectedModel
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "Analysis failed");
+                }
+
+                const predictionDiv = document.getElementById("prediction");
+                const confidenceDiv = document.getElementById("confidence");
+                const probContainer = document.getElementById("probabilities-container");
+
+                predictionDiv.textContent = data.sentiment;
+                predictionDiv.className = "prediction " + data.sentiment.toLowerCase();
+
+                confidenceDiv.textContent = `Confidence: ${data.confidence}%`;
+
+                probContainer.innerHTML = "";
+                const classColors = {
+                    "Positive": "positive",
+                    "Negative": "negative",
+                    "Objective": "objective",
+                    "Neutral": "neutral"
+                };
+
+                for (const [label, prob] of Object.entries(data.all_probs)) {
+                    const colorClass = classColors[label] || "objective";
+                    
+                    const probItem = document.createElement("div");
+                    probItem.className = "prob-item";
+                    probItem.innerHTML = `
+                        <div class="prob-label">
+                            <span class="prob-label-name">${label}</span>
+                            <span class="prob-label-value">${prob}%</span>
+                        </div>
+                        <div class="prob-bar-bg">
+                            <div class="prob-bar ${colorClass}" style="width: ${prob}%"></div>
+                        </div>
+                    `;
+                    probContainer.appendChild(probItem);
+                }
+
+                resultDiv.classList.add("show");
+
+            } catch (error) {
+                errorDiv.textContent = "Error: " + error.message;
+                errorDiv.classList.add("show");
+            } finally {
+                loadingDiv.classList.remove("show");
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = "Analyze Sentiment";
+            }
+        });
+
+        document.getElementById("text-input").addEventListener("keydown", function(e) {
+            if (e.ctrlKey && e.key === "Enter") {
+                document.getElementById("analyze-btn").click();
+            }
+        });
+    </script>
+</body>
+</html>
